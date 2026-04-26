@@ -1932,8 +1932,14 @@ function getCanvas(canvasId, wrapId) {
 }
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
-const today   = () => new Date().toISOString().slice(0, 10);
-const daysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
+const today   = () => { try { return new Date().toISOString().slice(0, 10); } catch(_) { return '2026-04-26'; } };
+const daysAgo = n => { try { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); } catch(_) { return '2026-03-27'; } };
+
+// Set dates immediately (before any async code)
+try {
+  document.getElementById('start-date').value = daysAgo(30);
+  document.getElementById('end-date').value   = today();
+} catch(_) {}
 
 // ── Number formatting ─────────────────────────────────────────────────────────
 function fmtDbu(v) {
