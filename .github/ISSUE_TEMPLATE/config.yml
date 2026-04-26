@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Databricks Community Forum
+    url: https://community.databricks.com
+    about: Ask usage questions on the Databricks Community Forum
+  - name: Databricks Apps Docs
+    url: https://docs.databricks.com/en/dev-tools/databricks-apps/index.html
+    about: Official Databricks Apps documentation

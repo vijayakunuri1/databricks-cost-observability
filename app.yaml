@@ -1,0 +1,90 @@
+command:
+  - uvicorn
+  - app:app
+  - --host
+  - "0.0.0.0"
+  - --port
+  - "8000"
+  - --workers
+  - "2"
+  - --proxy-headers
+  - --forwarded-allow-ips
+  - "*"
+  - --access-log
+
+env:
+  - name: ENVIRONMENT
+    value: "production"
+  # Controlled by the bundle target: "true" in dev, "false" in prod.
+  # Override: databricks bundle deploy -t prod  (sets false automatically)
+  # Manual:   databricks apps update databricks-cost-observability \
+  #             --env MOCK_MODE=false
+  - name: MOCK_MODE
+    value: "${var.mock_mode}"
+  - name: LOG_LEVEL
+    value: "info"
+  - name: APP_VERSION
+    value: "1.1.0"
+
+  # ──────────────────────────────────────────────────────────────────
+  # SECRETS — These values should be stored as Databricks App Secrets
+  # rather than plain text.  Use:
+  #   databricks apps set-secret <app-name> DATABRICKS_WAREHOUSE_ID <value>
+  #   databricks apps set-secret <app-name> DATABRICKS_ACCOUNT_ID <value>
+  # Then reference them here with valueFrom: instead of value:.
+  # For now they are kept inline for development convenience.
+  # ──────────────────────────────────────────────────────────────────
+  - name: DATABRICKS_WAREHOUSE_ID
+    value: "21f5bd20b7f44a51"
+
+  - name: UC_CATALOG_NAME
+    value: "workspace"
+
+  - name: DATABRICKS_ACCOUNT_ID
+    value: ""
+
+  # Comma-separated list of emails allowed to use this app.
+  # Leave empty to allow all workspace-authenticated users (recommended when
+  # using the Admin UI to manage per-user tab/workspace restrictions).
+  - name: ALLOWED_USERS
+    value: ""
+
+  # Comma-separated workspace IDs users may query billing data for.
+  # Empty = current workspace only. Use "*" for unrestricted admin mode.
+  - name: ALLOWED_WORKSPACE_IDS
+    value: "*"
+
+  # Comma-separated emails of users who can access the Admin panel.
+  # Admins always see all tabs and all data regardless of user_configs entries.
+  # Injected from the ADMIN_USERS GitHub secret via bundle deploy --var admin_users=...
+  # Set the secret: gh secret set ADMIN_USERS --repo <owner>/<repo>
+  - name: ADMIN_USERS
+    value: "${var.admin_users}"
+
+  # JSON mapping of Databricks numeric user IDs to emails — manual fallback only.
+  # Remove once the app service principal has workspace-admin rights (SCIM auto-resolves).
+  - name: USER_ID_MAP
+    value: '{}'
+
+  # ── Cost Alert Email Settings ──────────────────────────────────────────────
+  # Set SMTP_USER and SMTP_PASSWORD as secrets (never plain text):
+  #   databricks apps set-secret databricks-cost-observability SMTP_USER yourname@gmail.com
+  #   databricks apps set-secret databricks-cost-observability SMTP_PASSWORD your-app-password
+  #
+  # Gmail setup: myaccount.google.com → Security → App passwords → create one
+  - name: SMTP_HOST
+    value: "smtp.gmail.com"
+  - name: SMTP_PORT
+    value: "587"
+  - name: SMTP_USER
+    value: ""              # set via: databricks apps set-secret ... SMTP_USER
+  - name: SMTP_PASSWORD
+    value: ""              # set via: databricks apps set-secret ... SMTP_PASSWORD
+  - name: ALERT_EMAIL_TO
+    value: ""              # comma-separated recipients, e.g. "cto@example.com,finance@example.com"
+  - name: ALERT_THRESHOLD_PCT
+    value: "20"            # alert when 7-day avg is >20% above 30-day baseline
+  - name: APP_URL
+    value: ""              # your app URL — included as "Open Dashboard" link in alert emails
+
+

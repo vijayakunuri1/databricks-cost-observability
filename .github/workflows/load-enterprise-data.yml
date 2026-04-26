@@ -1,0 +1,26 @@
+name: Load Enterprise Mock Data
+
+on:
+  workflow_dispatch:
+
+jobs:
+  load-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install databricks-sdk
+
+      - name: Load enterprise mock data (3 years, $5M forecast, 1100 users)
+        run: python scripts/setup_enterprise_mock_data.py
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+          DATABRICKS_WAREHOUSE_ID: "21f5bd20b7f44a51"

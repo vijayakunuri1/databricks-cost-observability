@@ -1,0 +1,50 @@
+bundle:
+  name: databricks-cost-observability
+
+variables:
+  warehouse_id:
+    description: "SQL Warehouse ID to run billing queries"
+  catalog_name:
+    description: "Default Unity Catalog name"
+    default: "workspace"
+  mock_mode:
+    description: "Use mock_system_* tables instead of real system.* tables (true = demo/dev, false = production)"
+    default: "false"
+  admin_users:
+    description: "Comma-separated emails that can access the Admin panel (set via GitHub secret ADMIN_USERS)"
+    default: ""
+
+resources:
+  apps:
+    cost_observability_app:
+      name: "databricks-cost-observability"
+      description: "Databricks DBU and cost monitoring dashboard via system tables"
+      source_code_path: ./
+      permissions:
+        - level: CAN_USE
+          group_name: data-engineers
+        - level: CAN_MANAGE
+          user_name: ${workspace.current_user.userName}
+
+targets:
+  # ── Development / Demo ────────────────────────────────────────────────────────
+  # Uses mock_system_* Delta tables so the app works on any workspace
+  # without needing access to system.billing, system.compute, etc.
+  # Deploy: databricks bundle deploy -t dev
+  dev:
+    mode: development
+    default: true
+    variables:
+      warehouse_id: "21f5bd20b7f44a51"
+      catalog_name: "workspace"
+      mock_mode: "true"
+
+  # ── Production ────────────────────────────────────────────────────────────────
+  # Points at real Databricks system tables.
+  # Requires system table enablement on the workspace.
+  # Deploy: databricks bundle deploy -t prod \
+  #           --var warehouse_id=<id> --var catalog_name=<catalog>
+  prod:
+    mode: production
+    variables:
+      mock_mode: "false"

@@ -1,0 +1,61 @@
+name: Deploy to Databricks
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Bundle target: dev (mock data) or prod (real system tables)"
+        required: true
+        default: "dev"
+        type: choice
+        options:
+          - dev
+          - prod
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Databricks CLI
+        uses: databricks/setup-cli@main
+
+      - name: Deploy bundle
+        run: |
+          TARGET="${{ github.event.inputs.target || 'dev' }}"
+          echo "Deploying to target: $TARGET"
+          databricks bundle deploy --target "$TARGET" \
+            --var admin_users="${{ secrets.ADMIN_USERS }}"
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install databricks-sdk
+
+      - name: Setup mock tables (skipped — use enterprise data notebook instead)
+        if: false  # Disabled: run scripts/setup_enterprise_mock_data.py manually or via "Load Enterprise Mock Data" workflow
+        run: python scripts/setup_mock_tables.py
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+          DATABRICKS_WAREHOUSE_ID: "21f5bd20b7f44a51"
+
+      - name: Deploy app source code
+        run: |
+          USER=$(databricks current-user me | python3 -c "import sys,json; print(json.load(sys.stdin)['userName'])")
+          databricks apps deploy databricks-cost-observability \
+            --source-code-path "/Workspace/Users/${USER}/.bundle/databricks-cost-observability/dev/files"
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
