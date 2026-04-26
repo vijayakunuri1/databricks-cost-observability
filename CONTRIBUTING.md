@@ -53,7 +53,7 @@ git checkout -b fix/your-bug-description
 
 ### 5. Make your changes, then open a Pull Request
 
-Push your branch and open a PR against `checkpoint-v1` (our main working branch).
+Push your branch and open a PR against `main`.
 
 ---
 
@@ -106,6 +106,20 @@ Use the **Bug Report** issue template. Include:
 
 ---
 
-## License
+## License and Usage
 
-By contributing, you agree that your contributions will be licensed under the [MIT License](LICENSE).
+This project is licensed under the **[Elastic License 2.0](LICENSE)** — source available, not open source.
+
+By contributing, you agree your contributions will be covered by the same license.
+
+**You may:**
+- Fork this repo to contribute back via Pull Request
+- Deploy it internally within your own organisation
+- Reference, cite, or link to this project
+
+**You may not:**
+- Offer this software as a hosted or managed service to third parties
+- Fork and redistribute it independently under a different name or brand
+- Remove or alter the license or copyright notices
+
+If you want to showcase or reference this project publicly, please **link to this repository** rather than copying the code independently.
