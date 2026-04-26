@@ -1,0 +1,69 @@
+name: New Dashboard Tab
+description: Propose a brand new tab or section for the dashboard
+title: "[TAB] "
+labels: ["new-tab", "enhancement"]
+assignees: ["vijayakunuri1"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template to propose a new dashboard tab. Good tab proposals include a clear use case, the Databricks system tables it would use, and ideally a sketch of the layout.
+
+  - type: input
+    id: tab_name
+    attributes:
+      label: Proposed tab name
+      placeholder: "e.g. Serverless Cost, Delta Live Tables, Marketplace Usage"
+    validations:
+      required: true
+
+  - type: textarea
+    id: use_case
+    attributes:
+      label: What question does this tab answer?
+      description: Write it as a user question, e.g. "Which serverless jobs cost the most this month?"
+      placeholder: "Which teams are spending the most on serverless compute and why?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: system_tables
+    attributes:
+      label: Which Databricks system tables would it use?
+      description: List the system table(s) this tab would query.
+      placeholder: |
+        - system.billing.usage (filtered by billing_origin_product = 'SERVERLESS')
+        - system.compute.serverless_state_timeline
+    validations:
+      required: true
+
+  - type: textarea
+    id: metrics
+    attributes:
+      label: Key metrics / charts
+      description: What KPIs, charts, or tables should the tab show?
+      placeholder: |
+        - Total serverless DBUs by day (line chart)
+        - Top 10 jobs by serverless cost (table)
+        - Serverless vs classic compute cost split (donut)
+    validations:
+      required: false
+
+  - type: textarea
+    id: mockup
+    attributes:
+      label: Mockup or sketch
+      description: Drag and drop an image, link to a Figma, or describe the layout in words.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: willing_to_build
+    attributes:
+      label: Are you willing to build this tab?
+      options:
+        - "Yes — I'll open a PR"
+        - "Maybe — I'd like guidance first"
+        - "No — just proposing the idea"
+    validations:
+      required: true

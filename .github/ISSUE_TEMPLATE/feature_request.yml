@@ -1,0 +1,70 @@
+name: Feature Request
+description: Suggest an improvement to an existing tab, chart, or feature
+title: "[FEAT] "
+labels: ["enhancement"]
+assignees: ["vijayakunuri1"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have an idea to improve an existing feature? Fill out the form below.
+        If you want to propose a **brand new dashboard tab**, use the "New Dashboard Tab" template instead.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the gap or pain point clearly.
+      placeholder: "It's hard to tell which workspace is driving the most cost spike on a given day..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: What would you like to see added or changed?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which area does this affect?
+      options:
+        - Executive tab
+        - Cost Dashboard tab
+        - Anomalies tab
+        - User Adoption tab
+        - Compute Sizing tab
+        - Query Attribution tab
+        - AI / LLM tab
+        - UC Graph tab
+        - Job SLA tab
+        - Storage tab
+        - Lineage & ML tab
+        - Admin panel
+        - Filters / date range
+        - Alerting
+        - Deployment / CI-CD
+        - Mock data
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: mockup
+    attributes:
+      label: Mockup or example
+      description: Sketch, screenshot from another tool, or example SQL — anything that illustrates the idea.
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Any references, prior art, or related Databricks system tables this might use.
+    validations:
+      required: false

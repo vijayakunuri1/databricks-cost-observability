@@ -1,0 +1,101 @@
+name: Bug Report
+description: Something is broken or not working as expected
+title: "[BUG] "
+labels: ["bug"]
+assignees: ["vijayakunuri1"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please fill out the sections below so we can reproduce and fix it quickly.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What is broken?
+      description: A clear description of what is not working.
+      placeholder: "When I click Apply on the Cost Dashboard tab, the charts don't refresh..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Step-by-step instructions to reproduce the bug.
+      value: |
+        1. Go to tab '...'
+        2. Set date range to '...'
+        3. Click '...'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      placeholder: "The charts should refresh with data for the selected date range."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: cloud
+    attributes:
+      label: Databricks Cloud
+      options:
+        - Azure
+        - AWS
+        - GCP
+        - Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: mock_mode
+    attributes:
+      label: Are you using MOCK_MODE?
+      options:
+        - "Yes — MOCK_MODE=true (mock system tables)"
+        - "No — real system tables"
+        - Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: tab
+    attributes:
+      label: Which tab is affected?
+      options:
+        - Executive
+        - Cost Dashboard
+        - Anomalies
+        - User Adoption
+        - Compute Sizing
+        - Query Attribution
+        - AI / LLM
+        - UC Graph
+        - Job SLA
+        - Storage
+        - Lineage & ML
+        - Admin
+        - All tabs / general
+    validations:
+      required: false
+
+  - type: textarea
+    id: error
+    attributes:
+      label: Error message
+      description: Paste the full error from the browser console (F12 → Console) or app logs.
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Drag and drop screenshots here if applicable.
+    validations:
+      required: false

@@ -6,3 +6,6 @@ contact_links:
   - name: Databricks Apps Docs
     url: https://docs.databricks.com/en/dev-tools/databricks-apps/index.html
     about: Official Databricks Apps documentation
+  - name: Databricks System Tables Docs
+    url: https://docs.databricks.com/en/admin/system-tables/index.html
+    about: Reference for system.billing, system.compute, system.query and other system tables
