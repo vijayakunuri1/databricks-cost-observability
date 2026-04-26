@@ -15,12 +15,10 @@ command:
 env:
   - name: ENVIRONMENT
     value: "production"
-  # Controlled by the bundle target: "true" in dev, "false" in prod.
-  # Override: databricks bundle deploy -t prod  (sets false automatically)
-  # Manual:   databricks apps update databricks-cost-observability \
-  #             --env MOCK_MODE=false
+  # Set to "true" for demo/dev (uses mock_system_* tables).
+  # For production with real system tables, change to "false".
   - name: MOCK_MODE
-    value: "${var.mock_mode}"
+    value: "true"
   - name: LOG_LEVEL
     value: "info"
   - name: APP_VERSION

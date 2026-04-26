@@ -28,7 +28,9 @@ _log = logging.getLogger("sql_executor")
 # When MOCK_MODE=true, replace system catalog references with mock tables
 # so the app can be tested on free-tier workspaces without system table access.
 # ---------------------------------------------------------------------------
-_MOCK_MODE = os.getenv("MOCK_MODE", "false").lower() == "true"
+_MOCK_MODE_RAW = os.getenv("MOCK_MODE", "false")
+_MOCK_MODE = _MOCK_MODE_RAW.lower() == "true"
+_log.info("MOCK_MODE env=%r  active=%s", _MOCK_MODE_RAW, _MOCK_MODE)
 
 _MOCK_TABLE_MAP = {
     r"\bsystem\.billing\b":             "workspace.mock_system_billing",
