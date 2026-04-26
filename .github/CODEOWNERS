@@ -1,0 +1,9 @@
+# All PRs require review from the project owner
+* @vijayakunuri1
+
+# Security-sensitive areas require explicit sign-off
+core/security.py        @vijayakunuri1
+core/validators.py      @vijayakunuri1
+core/dependencies.py    @vijayakunuri1
+api/v1/admin.py         @vijayakunuri1
+.github/workflows/      @vijayakunuri1
