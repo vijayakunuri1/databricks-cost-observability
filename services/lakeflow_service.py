@@ -543,17 +543,23 @@ class LakeflowService:
             f_ws      = pool.submit(self._fetch_workspace_names)
             f_sla7    = pool.submit(self._fetch_combined_sla)
 
-        job_runs      = f_runs.result()
-        daily_stats   = f_daily.result()
-        top_failures  = f_fail.result()
-        pipeline_runs = f_pipe.result()
-        jobs_inv      = f_jinv.result()
-        task_summary  = f_task.result()
-        task_bots     = f_bots.result()
-        pipe_inv      = f_pinv.result()
-        pipe_updates  = f_pupd.result()
-        ws_names      = f_ws.result()
-        sla_7d        = f_sla7.result()
+        def _safe_result(future, default=None):
+            try:
+                return future.result()
+            except Exception:
+                return default if default is not None else []
+
+        job_runs      = _safe_result(f_runs)
+        daily_stats   = _safe_result(f_daily)
+        top_failures  = _safe_result(f_fail)
+        pipeline_runs = _safe_result(f_pipe)
+        jobs_inv      = _safe_result(f_jinv)
+        task_summary  = _safe_result(f_task)
+        task_bots     = _safe_result(f_bots)
+        pipe_inv      = _safe_result(f_pinv)
+        pipe_updates  = _safe_result(f_pupd)
+        ws_names      = _safe_result(f_ws, {})
+        sla_7d        = _safe_result(f_sla7)
 
         result = self._analyse(
             job_runs, daily_stats, top_failures, pipeline_runs,

@@ -281,12 +281,18 @@ class PlatformOpsService:
             f_dinv  = pool.submit(self._fetch_dashboard_inventory)
             f_alrt  = pool.submit(self._fetch_alerts)
 
-        priv_endpoints = f_priv.result()
+        def _safe_result(future, default=None):
+            try:
+                return future.result()
+            except Exception:
+                return default if default is not None else []
+
+        priv_endpoints = _safe_result(f_priv)
         # Use VPC results only when private endpoint table returned nothing
-        vpc_endpoints  = f_vpc.result() if not priv_endpoints else []
-        dash_events    = f_devt.result()
-        dash_inventory = f_dinv.result()
-        alerts         = f_alrt.result()
+        vpc_endpoints  = _safe_result(f_vpc) if not priv_endpoints else []
+        dash_events    = _safe_result(f_devt)
+        dash_inventory = _safe_result(f_dinv)
+        alerts         = _safe_result(f_alrt)
 
         result = self._analyse(priv_endpoints, vpc_endpoints,
                                dash_events, dash_inventory, alerts)

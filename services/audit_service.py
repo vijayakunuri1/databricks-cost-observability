@@ -264,11 +264,17 @@ class AuditService:
             f_top  = pool.submit(self._fetch_top_actions)
             f_usvc = pool.submit(self._fetch_user_top_services)
 
-        user_activity     = f_act.result()
-        daily_active      = f_dly.result()
-        service_breakdown = f_svc.result()
-        top_actions       = f_top.result()
-        user_top_svc      = f_usvc.result()
+        def _safe_result(future, default=None):
+            try:
+                return future.result()
+            except Exception:
+                return default if default is not None else []
+
+        user_activity     = _safe_result(f_act)
+        daily_active      = _safe_result(f_dly)
+        service_breakdown = _safe_result(f_svc)
+        top_actions       = _safe_result(f_top)
+        user_top_svc      = _safe_result(f_usvc)
 
         result = self._compute_results(
             user_activity, daily_active, service_breakdown,

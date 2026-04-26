@@ -262,10 +262,16 @@ class StorageService:
             f_sch  = pool.submit(self._fetch_schema_summary)
             f_ws   = pool.submit(self._fetch_workspace_inventory)
 
-        opt_ops  = f_opt.result()
-        tables   = f_tbl.result()
-        schemas  = f_sch.result()
-        ws_inv   = f_ws.result()
+        def _safe_result(future, default=None):
+            try:
+                return future.result()
+            except Exception:
+                return default if default is not None else []
+
+        opt_ops  = _safe_result(f_opt)
+        tables   = _safe_result(f_tbl)
+        schemas  = _safe_result(f_sch)
+        ws_inv   = _safe_result(f_ws)
 
         result = self._analyse(opt_ops, tables, schemas, ws_inv)
         result["cache_age_minutes"] = 0

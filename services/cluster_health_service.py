@@ -238,11 +238,17 @@ class ClusterHealthService:
             f_peaks   = pool.submit(self._fetch_node_peak_clusters)
             f_sdk     = pool.submit(self._fetch_cluster_inventory_sdk)
 
-        events       = f_events.result()
-        event_summ   = f_summ.result()
-        node_util    = f_util.result()
-        node_peaks   = f_peaks.result()
-        sdk_clusters = f_sdk.result()
+        def _safe_result(future, default=None):
+            try:
+                return future.result()
+            except Exception:
+                return default if default is not None else []
+
+        events       = _safe_result(f_events)
+        event_summ   = _safe_result(f_summ)
+        node_util    = _safe_result(f_util)
+        node_peaks   = _safe_result(f_peaks)
+        sdk_clusters = _safe_result(f_sdk)
 
         result = self._analyse(events, event_summ, node_util, node_peaks, sdk_clusters)
         result["cache_age_minutes"] = 0

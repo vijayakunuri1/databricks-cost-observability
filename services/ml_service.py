@@ -21,7 +21,7 @@ from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.sql import StatementState
 
 from core.config import get_settings
-from core.sql_executor import execute_sync
+from core.sql_executor import execute_sync, safe_execute_sync
 from core.subscriptions import resolve_subscription
 
 
@@ -167,6 +167,9 @@ class MLAnomalyService:
 
     def _execute(self, sql: str) -> list[dict]:
         return execute_sync(self._client, self._wh_id, sql, label="ML")
+
+    def _safe_execute(self, sql: str) -> list[dict]:
+        return safe_execute_sync(self._client, self._wh_id, sql, label="ML")
 
     # ── data fetching ─────────────────────────────────────────────────────────
 
@@ -684,11 +687,20 @@ class MLAnomalyService:
                 }
 
         # ── full computation ──────────────────────────────────────────────────
-        history      = self._fetch_history()
+        try:
+            history = self._fetch_history()
+        except Exception:
+            history = []
         baseline     = self._compute_baseline(history)
         if_model     = self._train_if(history)
-        daily_cost   = self._fetch_daily_cost()
-        last_billing = self._fetch_last_billing()
+        try:
+            daily_cost = self._fetch_daily_cost()
+        except Exception:
+            daily_cost = []
+        try:
+            last_billing = self._fetch_last_billing()
+        except Exception:
+            last_billing = {}
 
         drift     = self._drift_alerts(daily_cost)
         idle      = self._detect_idle(running, last_billing)

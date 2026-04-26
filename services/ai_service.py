@@ -346,12 +346,18 @@ class AIService:
             f_lat_mod  = pool.submit(self._fetch_latency_percentiles)
             f_lat_day  = pool.submit(self._fetch_latency_daily)
 
-        gateway_usage       = f_gw_use.result()
-        gateway_users       = f_gw_usr.result()
-        serving_billing     = f_sv_bill.result()
-        billing_users       = f_bill_usr.result()
-        latency_percentiles = f_lat_mod.result()
-        latency_daily       = f_lat_day.result()
+        def _safe_result(future, default=None):
+            try:
+                return future.result()
+            except Exception:
+                return default if default is not None else []
+
+        gateway_usage       = _safe_result(f_gw_use)
+        gateway_users       = _safe_result(f_gw_usr)
+        serving_billing     = _safe_result(f_sv_bill)
+        billing_users       = _safe_result(f_bill_usr)
+        latency_percentiles = _safe_result(f_lat_mod)
+        latency_daily       = _safe_result(f_lat_day)
 
         result = self._analyse(gateway_usage, gateway_users, serving_billing, billing_users,
                                latency_percentiles, latency_daily)

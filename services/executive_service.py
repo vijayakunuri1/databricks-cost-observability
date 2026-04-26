@@ -22,6 +22,14 @@ from core.sql_executor import execute_sync, safe_execute_sync
 _log = logging.getLogger("security")
 
 
+def _safe_future(future, default=None):
+    """Get a future's result, returning *default* (or []) on any exception."""
+    try:
+        return future.result()
+    except Exception:
+        return default if default is not None else []
+
+
 class ExecutiveService:
     CACHE_TTL_MIN = 20
 
@@ -1015,8 +1023,8 @@ class ExecutiveService:
             f_pareto          = pool.submit(self._fetch_pareto_analysis)
             f_annual_forecast = pool.submit(self._fetch_annual_forecast)
 
-        scorecard  = f_scorecard.result()
-        savings    = f_savings.result()
+        scorecard  = _safe_future(f_scorecard, {})
+        savings    = _safe_future(f_savings)
         total_savings = round(sum(s["estimated_saving_usd"] for s in savings), 2)
 
         result = {
@@ -1024,21 +1032,21 @@ class ExecutiveService:
                 **scorecard,
                 "total_savings_opportunity": total_savings,
             },
-            "cost_trend":             f_trend.result(),
-            "run_rate_metrics":       f_runrate.result(),
-            "top_workspaces":         f_workspaces.result(),
-            "top_products":           f_products.result(),
-            "product_area_spend":     f_product_area.result(),
-            "job_health":             f_jobs.result(),
-            "active_users":           f_users.result(),
+            "cost_trend":             _safe_future(f_trend),
+            "run_rate_metrics":       _safe_future(f_runrate, {}),
+            "top_workspaces":         _safe_future(f_workspaces),
+            "top_products":           _safe_future(f_products),
+            "product_area_spend":     _safe_future(f_product_area),
+            "job_health":             _safe_future(f_jobs, {}),
+            "active_users":           _safe_future(f_users, {}),
             "savings_opportunities":  savings,
-            "governance_signals":     f_governance.result(),
-            "sla_breaches":           f_sla.result(),
-            "chargeback":             f_chargeback.result(),
-            "azure_infra_costs":      f_azure_infra.result(),
-            "ai_forecast":            f_forecast.result(),
-            "pareto_analysis":        f_pareto.result(),
-            "annual_forecast":        f_annual_forecast.result(),
+            "governance_signals":     _safe_future(f_governance, {}),
+            "sla_breaches":           _safe_future(f_sla),
+            "chargeback":             _safe_future(f_chargeback),
+            "azure_infra_costs":      _safe_future(f_azure_infra),
+            "ai_forecast":            _safe_future(f_forecast, {}),
+            "pareto_analysis":        _safe_future(f_pareto),
+            "annual_forecast":        _safe_future(f_annual_forecast, {}),
             "cache_age_minutes":      0,
         }
 

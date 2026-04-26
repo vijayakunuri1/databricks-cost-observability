@@ -706,15 +706,21 @@ class ComputeService:
             f_node_types  = pool.submit(self._fetch_node_types_info)
             f_job_cost    = pool.submit(self._fetch_jobs_compute_cost)
 
-        clusters        = f_clusters.result()
-        warehouses      = f_warehouses.result()
-        utilisation     = f_util.result()
-        recent_active   = f_recent.result()
-        dlt_billing     = f_dlt.result()
-        sdk_pipe_info   = f_pipe.result()
-        node_util       = f_node_util.result()
-        node_types_info = f_node_types.result()
-        jobs_cost       = f_job_cost.result()
+        def _safe_result(future, default=None):
+            try:
+                return future.result()
+            except Exception:
+                return default if default is not None else []
+
+        clusters        = _safe_result(f_clusters)
+        warehouses      = _safe_result(f_warehouses)
+        utilisation     = _safe_result(f_util)
+        recent_active   = _safe_result(f_recent, set())
+        dlt_billing     = _safe_result(f_dlt)
+        sdk_pipe_info   = _safe_result(f_pipe, {})
+        node_util       = _safe_result(f_node_util)
+        node_types_info = _safe_result(f_node_types, {})
+        jobs_cost       = _safe_result(f_job_cost)
 
         result = self._analyse(
             clusters, warehouses, utilisation, recent_active,

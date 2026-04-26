@@ -340,13 +340,19 @@ class LineageService:
             f_runs  = pool.submit(self._fetch_mlflow_runs)
             f_mdls  = pool.submit(self._fetch_mlflow_models)
 
-        table_lineage  = f_tlin.result()
-        column_lineage = f_clin.result()
-        endpoints      = f_ep.result()
-        serving_usage  = f_su.result()
-        experiments    = f_exp.result()
-        ml_runs        = f_runs.result()
-        ml_models      = f_mdls.result()
+        def _safe_result(future, default=None):
+            try:
+                return future.result()
+            except Exception:
+                return default if default is not None else []
+
+        table_lineage  = _safe_result(f_tlin)
+        column_lineage = _safe_result(f_clin)
+        endpoints      = _safe_result(f_ep)
+        serving_usage  = _safe_result(f_su)
+        experiments    = _safe_result(f_exp)
+        ml_runs        = _safe_result(f_runs)
+        ml_models      = _safe_result(f_mdls)
 
         result = self._analyse(
             table_lineage, column_lineage, endpoints, serving_usage,

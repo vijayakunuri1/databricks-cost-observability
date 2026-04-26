@@ -298,12 +298,18 @@ class GovernanceService:
             f_sp    = pool.submit(self._fetch_sp_inventory)
             f_ginv  = pool.submit(self._fetch_group_inventory)
 
-        iam_events   = f_iam.result()
-        token_events = f_tok.result()
-        group_events = f_grp.result()
-        perm_events  = f_perm.result()
-        sp_inv       = f_sp.result()
-        grp_inv      = f_ginv.result()
+        def _safe_result(future, default=None):
+            try:
+                return future.result()
+            except Exception:
+                return default if default is not None else []
+
+        iam_events   = _safe_result(f_iam)
+        token_events = _safe_result(f_tok)
+        group_events = _safe_result(f_grp)
+        perm_events  = _safe_result(f_perm)
+        sp_inv       = _safe_result(f_sp)
+        grp_inv      = _safe_result(f_ginv)
 
         result = self._analyse(iam_events, token_events, group_events,
                                perm_events, sp_inv, grp_inv)
