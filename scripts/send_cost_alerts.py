@@ -283,8 +283,12 @@ def main():
     msg.attach(MIMEText(body, "html"))
 
     print(f"Sending email to {recipients}...")
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-        server.starttls()
+    import ssl
+    ctx = ssl.create_default_context()
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30) as server:
+        server.ehlo()
+        server.starttls(context=ctx)
+        server.ehlo()
         server.login(SMTP_USER, SMTP_PASS)
         server.sendmail(SMTP_USER, recipients, msg.as_string())
 

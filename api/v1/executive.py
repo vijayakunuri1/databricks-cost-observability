@@ -35,8 +35,8 @@ async def _handle_async(fn):
         err = str(exc)
         _log.error("RUNTIME_ERROR handler=executive error=%s", err)
         if "TABLE_OR_VIEW_NOT_FOUND" in err or "SCHEMA_NOT_FOUND" in err or "UNRESOLVED_COLUMN" in err:
-            raise HTTPException(status_code=404, detail=f"Required data source not available: {err}")
-        raise HTTPException(status_code=400, detail=f"Query execution failed: {err}")
+            raise HTTPException(status_code=404, detail="Required data source not available")
+        raise HTTPException(status_code=400, detail="Request could not be processed")
     except Exception as exc:
         _log.exception("UNHANDLED_ERROR handler=executive error=%s", str(exc))
         raise HTTPException(status_code=500, detail="Internal server error")

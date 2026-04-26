@@ -119,7 +119,7 @@ _HEAVY_PATHS = re.compile(
     r"|alerts/test-email"
     r"|alerts/send-now)"
 )
-_AUTH_PATHS = re.compile(r"^/api/v1/health/whoami")
+_AUTH_PATHS = re.compile(r"^/api/v1/(health/whoami|admin/)")
 
 # Known bot / scanner user-agent patterns
 _BOT_UA_RE = re.compile(

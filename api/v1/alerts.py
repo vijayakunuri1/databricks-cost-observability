@@ -5,17 +5,86 @@ from __future__ import annotations
 import html
 import logging
 import os
+import re
 import smtplib
+import ssl
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from core.dependencies import get_workspace_client, require_admin
-from core.validators import validate_threshold_pct
+from core.validators import validate_threshold_pct, validate_email_address
 
 router = APIRouter(prefix="/alerts", tags=["Alerts"])
 _log   = logging.getLogger(__name__)
+
+# Allowed SMTP ports (reject arbitrary ports to prevent SSRF)
+_ALLOWED_SMTP_PORTS = {25, 465, 587, 2525}
+# SMTP hosts must be a valid domain (prevent SSRF to internal IPs)
+_SMTP_HOST_RE = re.compile(r"^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+$")
+
+
+def _validate_smtp_config() -> tuple[str, int, str, str, list[str]]:
+    """Validate and return (host, port, user, password, recipients). Raises HTTPException on invalid config."""
+    smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
+    try:
+        smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+    except ValueError:
+        raise HTTPException(status_code=400, detail="SMTP_PORT must be a valid integer")
+    if smtp_port not in _ALLOWED_SMTP_PORTS:
+        raise HTTPException(status_code=400, detail=f"SMTP_PORT must be one of {sorted(_ALLOWED_SMTP_PORTS)}")
+    if not _SMTP_HOST_RE.match(smtp_host):
+        raise HTTPException(status_code=400, detail="SMTP_HOST must be a valid domain name")
+    smtp_user = os.environ.get("SMTP_USER", "")
+    smtp_pass = os.environ.get("SMTP_PASSWORD", "")
+    alert_to_raw = os.environ.get("ALERT_EMAIL_TO", "")
+
+    missing = [k for k, v in {"SMTP_USER": smtp_user, "SMTP_PASSWORD": smtp_pass, "ALERT_EMAIL_TO": alert_to_raw}.items() if not v]
+    if missing:
+        raise HTTPException(status_code=400, detail=f"Missing env vars: {', '.join(missing)}")
+
+    # Validate each recipient email
+    recipients = []
+    for addr in alert_to_raw.split(","):
+        addr = addr.strip()
+        if addr:
+            try:
+                recipients.append(validate_email_address(addr))
+            except ValueError:
+                raise HTTPException(status_code=400, detail=f"Invalid recipient email format")
+    if not recipients:
+        raise HTTPException(status_code=400, detail="ALERT_EMAIL_TO has no valid addresses")
+
+    return smtp_host, smtp_port, smtp_user, smtp_pass, recipients
+
+
+def _send_email(smtp_host: str, smtp_port: int, smtp_user: str, smtp_pass: str,
+                recipients: list[str], subject: str, html_body: str) -> None:
+    """Send email with enforced TLS. Raises HTTPException on failure."""
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject[:200]  # Truncate to prevent header injection
+    msg["From"] = smtp_user
+    msg["To"] = ", ".join(recipients)
+    msg.attach(MIMEText(html_body, "html"))
+
+    try:
+        ctx = ssl.create_default_context()
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=30) as server:
+            server.ehlo()
+            server.starttls(context=ctx)
+            server.ehlo()
+            server.login(smtp_user, smtp_pass)
+            server.sendmail(smtp_user, recipients, msg.as_string())
+    except smtplib.SMTPAuthenticationError:
+        _log.error("SMTP_AUTH_FAILED host=%s user=%s", smtp_host, smtp_user)
+        raise HTTPException(status_code=500, detail="SMTP authentication failed")
+    except smtplib.SMTPException as exc:
+        _log.error("SMTP_ERROR host=%s error=%s", smtp_host, exc)
+        raise HTTPException(status_code=500, detail="Email delivery failed")
+    except Exception as exc:
+        _log.error("EMAIL_SEND_FAILED host=%s error=%s", smtp_host, exc)
+        raise HTTPException(status_code=500, detail="Email delivery failed")
 
 
 def _svc(request: Request):
@@ -56,21 +125,7 @@ def get_alert_config(request: Request):
 def send_test_email(request: Request):
     """Send a test alert email to verify SMTP config (admin only)."""
     require_admin(request)
-    smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
-    smtp_port = int(os.environ.get("SMTP_PORT", "587"))
-    smtp_user = os.environ.get("SMTP_USER", "")
-    smtp_pass = os.environ.get("SMTP_PASSWORD", "")
-    alert_to  = os.environ.get("ALERT_EMAIL_TO", "")
-
-    missing = [k for k, v in {
-        "SMTP_USER": smtp_user, "SMTP_PASSWORD": smtp_pass,
-        "ALERT_EMAIL_TO": alert_to,
-    }.items() if not v]
-    if missing:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Missing env vars: {', '.join(missing)}. Set them in app.yaml.",
-        )
+    smtp_host, smtp_port, smtp_user, smtp_pass, recipients = _validate_smtp_config()
 
     body = """
     <html><body style="font-family:Arial,sans-serif;padding:24px;background:#1a1a2e;color:#e0e0e0">
@@ -79,28 +134,9 @@ def send_test_email(request: Request):
       <p style="color:#888;font-size:12px">Databricks Cost Observability &#x2014; Alert System</p>
     </body></html>
     """
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = "Test Alert — Databricks Cost Observability"
-    msg["From"]    = smtp_user
-    msg["To"]      = alert_to
-    msg.attach(MIMEText(body, "html"))
-
-    try:
-        with smtplib.SMTP(smtp_host, smtp_port) as server:
-            server.starttls()
-            server.login(smtp_user, smtp_pass)
-            server.sendmail(smtp_user, [alert_to], msg.as_string())
-    except smtplib.SMTPAuthenticationError:
-        _log.error("SMTP_AUTH_FAILED host=%s user=%s", smtp_host, smtp_user)
-        raise HTTPException(status_code=500, detail="SMTP authentication failed — check SMTP_USER and SMTP_PASSWORD")
-    except smtplib.SMTPException as exc:
-        _log.error("SMTP_ERROR host=%s error=%s", smtp_host, exc)
-        raise HTTPException(status_code=500, detail=f"SMTP error: {exc}")
-    except Exception as exc:
-        _log.error("EMAIL_SEND_FAILED host=%s error=%s", smtp_host, exc)
-        raise HTTPException(status_code=500, detail="Email delivery failed — check server logs")
-
-    return {"status": "sent", "to": alert_to}
+    _send_email(smtp_host, smtp_port, smtp_user, smtp_pass, recipients,
+                "Test Alert — Databricks Cost Observability", body)
+    return {"status": "sent", "to": recipients[0]}
 
 
 def _build_email_html(result: dict, threshold_pct: float, app_url: str) -> str:
@@ -190,22 +226,8 @@ def send_alerts_now(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
 
-    smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
-    smtp_port = int(os.environ.get("SMTP_PORT", "587"))
-    smtp_user = os.environ.get("SMTP_USER", "")
-    smtp_pass = os.environ.get("SMTP_PASSWORD", "")
-    alert_to  = os.environ.get("ALERT_EMAIL_TO", "")
-    app_url   = os.environ.get("APP_URL", "")
-
-    missing = [k for k, v in {
-        "SMTP_USER": smtp_user, "SMTP_PASSWORD": smtp_pass,
-        "ALERT_EMAIL_TO": alert_to,
-    }.items() if not v]
-    if missing:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Missing env vars: {', '.join(missing)}",
-        )
+    smtp_host, smtp_port, smtp_user, smtp_pass, recipients = _validate_smtp_config()
+    app_url = os.environ.get("APP_URL", "")
 
     result = svc.detect_spikes(threshold_pct=pct)
 
@@ -214,29 +236,13 @@ def send_alerts_now(
 
     body  = _build_email_html(result, pct, app_url)
     count = result["alert_count"]
+    subject = f"Databricks Cost Alert — {count} issue{'s' if count != 1 else ''} detected"
 
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = f"Databricks Cost Alert — {count} issue{'s' if count != 1 else ''} detected"
-    msg["From"]    = smtp_user
-    msg["To"]      = alert_to
-    msg.attach(MIMEText(body, "html"))
-
-    recipients = [e.strip() for e in alert_to.split(",") if e.strip()]
-    try:
-        with smtplib.SMTP(smtp_host, smtp_port) as server:
-            server.starttls()
-            server.login(smtp_user, smtp_pass)
-            server.sendmail(smtp_user, recipients, msg.as_string())
-    except smtplib.SMTPAuthenticationError:
-        _log.error("SMTP_AUTH_FAILED host=%s user=%s", smtp_host, smtp_user)
-        raise HTTPException(status_code=500, detail="SMTP authentication failed")
-    except Exception as exc:
-        _log.error("EMAIL_SEND_FAILED host=%s error=%s", smtp_host, exc)
-        raise HTTPException(status_code=500, detail="Email delivery failed — check server logs")
+    _send_email(smtp_host, smtp_port, smtp_user, smtp_pass, recipients, subject, body)
 
     return {
         "status":      "sent",
-        "to":          alert_to,
+        "to":          recipients[0],
         "alert_count": count,
         "alerts":      [a["title"] for a in result["alerts"]],
     }

@@ -36,10 +36,9 @@ async def _handle_async(fn):
     except RuntimeError as exc:
         error_detail = str(exc)
         _log.error("RUNTIME_ERROR handler=audit error=%s", error_detail)
-        # If it's a table/schema not found error, return 404 instead of 400
         if "TABLE_OR_VIEW_NOT_FOUND" in error_detail or "SCHEMA_NOT_FOUND" in error_detail or "UNRESOLVED_COLUMN" in error_detail:
-            raise HTTPException(status_code=404, detail=f"Required data source not available: {error_detail}")
-        raise HTTPException(status_code=400, detail=f"Query execution failed: {error_detail}")
+            raise HTTPException(status_code=404, detail="Required data source not available")
+        raise HTTPException(status_code=400, detail="Request could not be processed")
     except Exception as exc:
         _log.exception("UNHANDLED_ERROR handler=audit error=%s", str(exc))
         raise HTTPException(status_code=500, detail="Internal server error")

@@ -3,11 +3,11 @@ import logging
 import threading
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from databricks.sdk import WorkspaceClient, AccountClient
 
 from core.config import get_settings
-from core.dependencies import get_workspace_client
+from core.dependencies import get_workspace_client, require_admin
 from core.validators import validate_sql_identifier
 from services.access_service import AccessService
 
@@ -53,10 +53,11 @@ async def _handle_async(fn):
 
 
 @router.get("/access-debug", summary="Debug: grants per catalog")
-async def access_debug(svc: AccessService = Depends(_access_svc)):
-    """Debug: SHOW GRANTS ON CATALOG for all catalogs. Disabled in production."""
+async def access_debug(request: Request, svc: AccessService = Depends(_access_svc)):
+    """Debug: SHOW GRANTS ON CATALOG for all catalogs. Admin only, disabled in production."""
     if get_settings().is_production:
         raise HTTPException(status_code=404, detail="Not found")
+    require_admin(request)
     result = {}
     # All catalogs from information_schema
     try:
@@ -65,7 +66,8 @@ async def access_debug(svc: AccessService = Depends(_access_svc)):
         catalogs = [c for c in catalogs if c and not c.startswith("__")]
         result["catalogs"] = catalogs
     except Exception as e:
-        result["catalogs_error"] = str(e)
+        _log.warning("ACCESS_DEBUG catalog listing failed: %s", e)
+        result["catalogs_error"] = "Failed to list catalogs"
         catalogs = []
     # SHOW GRANTS ON CATALOG for each
     grants_per_cat = {}
@@ -82,7 +84,8 @@ async def access_debug(svc: AccessService = Depends(_access_svc)):
                     principals.setdefault(p, []).append(a)
             grants_per_cat[cat] = {"grant_count": len(rows), "principals": principals}
         except Exception as e:
-            grants_per_cat[cat] = {"error": str(e)}
+            _log.warning("ACCESS_DEBUG grants check failed for catalog %s: %s", cat, e)
+            grants_per_cat[cat] = {"error": "Failed to retrieve grants"}
     result["grants_per_catalog"] = grants_per_cat
     return result
 
