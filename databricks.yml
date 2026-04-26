@@ -35,7 +35,6 @@ targets:
     mode: development
     default: true
     variables:
-      warehouse_id: "21f5bd20b7f44a51"
       catalog_name: "workspace"
       mock_mode: "true"
 

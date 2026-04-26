@@ -30,6 +30,7 @@ jobs:
           TARGET="${{ github.event.inputs.target || 'dev' }}"
           echo "Deploying to target: $TARGET"
           databricks bundle deploy --target "$TARGET" \
+            --var warehouse_id="${{ secrets.DATABRICKS_WAREHOUSE_ID }}" \
             --var admin_users="${{ secrets.ADMIN_USERS }}"
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
@@ -49,7 +50,7 @@ jobs:
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
-          DATABRICKS_WAREHOUSE_ID: "21f5bd20b7f44a51"
+          DATABRICKS_WAREHOUSE_ID: ${{ secrets.DATABRICKS_WAREHOUSE_ID }}
 
       - name: Deploy app source code
         run: |
