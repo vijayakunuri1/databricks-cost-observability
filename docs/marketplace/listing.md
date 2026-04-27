@@ -85,10 +85,10 @@ cost-optimization, finops, observability, databricks-apps, unity-catalog, system
 - Databricks Apps enabled on workspace
 
 ## Version
-1.0.0 — checkpoint-v1
+1.0.0
 
 ## License
-MIT
+Elastic License 2.0 (EL2) — free for internal use and self-deployment; commercial hosting requires a separate agreement
 
 ---
 
