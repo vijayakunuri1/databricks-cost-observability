@@ -7900,7 +7900,8 @@ async function loadPlatformCost(force) {
       'Updated ' + new Date().toLocaleTimeString();
 
   } catch(e) {
-    document.getElementById('pc-gen-at').textContent = 'Error loading data';
+    const msg = e?.message || String(e);
+    document.getElementById('pc-gen-at').textContent = 'Error: ' + msg;
     console.error('Platform Cost error', e);
     const noData = '<div style="padding:24px;color:#6b7280;text-align:center">Failed to load — check that the cloud_platform_costs table exists and the warehouse is running.</div>';
     ['pc-services-wrap', 'pc-accounts-wrap'].forEach(id => {
