@@ -7901,7 +7901,7 @@ async function loadPlatformCost(force) {
 
   } catch(e) {
     const msg = e?.message || String(e);
-    document.getElementById('pc-gen-at').textContent = 'Error: ' + msg;
+    document.getElementById('pc-gen-at').textContent = 'Error loading platform cost data.';
     console.error('Platform Cost error', e);
     const noData = '<div style="padding:24px;color:#6b7280;text-align:center">Failed to load — check that the cloud_platform_costs table exists and the warehouse is running.</div>';
     ['pc-services-wrap', 'pc-accounts-wrap'].forEach(id => {
@@ -7909,8 +7909,8 @@ async function loadPlatformCost(force) {
       if (el) el.innerHTML = noData;
     });
     // Clear any lingering chart canvases
-    if (_pcDailyChart)    { _pcDailyChart.destroy();    _pcDailyChart    = null; }
-    if (_pcCategoryChart) { _pcCategoryChart.destroy(); _pcCategoryChart = null; }
+    if (_pcDailyChart) { _pcDailyChart.destroy(); _pcDailyChart = null; }
+    if (_pcCatChart)   { _pcCatChart.destroy();   _pcCatChart   = null; }
   }
 }
 
