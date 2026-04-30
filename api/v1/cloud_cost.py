@@ -40,9 +40,9 @@ async def _handle(fn):
     except ValueError as e:
         _log.warning("VALIDATION_ERROR cloud_cost error=%s", e)
         raise HTTPException(status_code=422, detail="Invalid input parameters")
-    except Exception:
+    except Exception as exc:
         _log.exception("UNHANDLED_ERROR cloud_cost")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=500, detail=f"Cloud cost error: {type(exc).__name__}: {exc}")
 
 
 def _parse_accounts(account: Optional[str]) -> list[str]:
