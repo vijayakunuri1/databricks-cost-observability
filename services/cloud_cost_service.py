@@ -115,17 +115,17 @@ class CloudCostService:
             {pc} {ac}
         """
         prev_rows = self._safe(prev_sql)
-        prev_cost = (prev_rows[0].get("prev_cost") or 0) if prev_rows else 0
-        curr_cost = row.get("total_cost_usd") or 0
+        prev_cost = float(prev_rows[0].get("prev_cost") or 0) if prev_rows else 0.0
+        curr_cost = float(row.get("total_cost_usd") or 0)
         mom = round(((curr_cost - prev_cost) / prev_cost * 100) if prev_cost else 0, 1)
 
         return {
             "total_cost_usd": curr_cost,
             "prev_cost_usd": prev_cost,
             "mom_pct": mom,
-            "account_count": row.get("account_count", 0),
-            "service_count": row.get("service_count", 0),
-            "region_count": row.get("region_count", 0),
+            "account_count": int(row.get("account_count") or 0),
+            "service_count": int(row.get("service_count") or 0),
+            "region_count": int(row.get("region_count") or 0),
             "latest_date": row.get("latest_date"),
         }
 
