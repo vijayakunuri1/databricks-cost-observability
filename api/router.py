@@ -6,6 +6,7 @@ from api.v1 import lakeflow, storage, lineage
 from api.v1 import governance, cluster_health, marketplace, platform_ops
 from api.v1 import executive
 from api.v1 import alerts
+from api.v1 import cloud_cost
 
 api_router = APIRouter()
 api_router.include_router(user.router,          prefix="/v1")
@@ -27,3 +28,4 @@ api_router.include_router(cluster_health.router, prefix="/v1")
 api_router.include_router(marketplace.router,   prefix="/v1")
 api_router.include_router(platform_ops.router,  prefix="/v1")
 api_router.include_router(alerts.router,        prefix="/v1")
+api_router.include_router(cloud_cost.router,    prefix="/v1")

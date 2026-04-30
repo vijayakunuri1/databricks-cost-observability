@@ -346,6 +346,14 @@
     }
     .ml-reasons { margin:3px 0 0 10px; padding:0; list-style:disc; font-size:0.7rem; color:#6b7280; }
     .ml-reasons li { margin-bottom:1px; }
+    /* ── Platform Cost provider selector buttons ──────────────────────────── */
+    .pc-provider-btn {
+      padding: 3px 12px; border-radius: 5px; border: 1px solid #334155;
+      background: none; color: #9ca3af; cursor: pointer; font-size: 0.75rem;
+      transition: background 0.15s, color 0.15s;
+    }
+    .pc-provider-btn:hover { background: #1e2130; color: #e2e8f0; }
+    .pc-provider-btn.active { background: #1e2130; color: #e2e8f0; border-color: #60a5fa; }
     /* ── Compute section fullscreen overlay ───────────────────────────────── */
     #cmp-fullscreen-overlay {
       display:none; position:fixed; inset:0; z-index:9999;
@@ -565,6 +573,7 @@
   <button class="tab-btn"        data-tab="jobsla"   onclick="switchTab('jobsla')">Job SLA</button>
   <button class="tab-btn"        data-tab="datastorage" onclick="switchTab('datastorage')">Storage</button>
   <button class="tab-btn"        data-tab="datalineage" onclick="switchTab('datalineage')">Lineage & ML</button>
+  <button class="tab-btn"        data-tab="platformcost" onclick="switchTab('platformcost')">Platform Cost</button>
   <button class="tab-btn"        data-tab="admin"       onclick="switchTab('admin')"
     style="display:none;margin-left:auto;color:#60a5fa;border-bottom-color:transparent">⚙ Admin</button>
 </div>
@@ -1905,6 +1914,100 @@
 </main>
 </div>
 
+<!-- ── Platform Cost tab ── -->
+<div id="tab-platformcost" style="display:none">
+<main>
+  <!-- Header bar -->
+  <div class="ml-model-strip" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <span id="pc-gen-at" style="font-size:0.72rem;color:#6b7280">—</span>
+    <!-- Cloud provider selector -->
+    <div style="display:flex;gap:6px;align-items:center">
+      <span style="font-size:0.75rem;color:#94a3b8">Provider:</span>
+      <button id="pc-btn-all"   class="pc-provider-btn active" onclick="pcSetProvider(null)">All</button>
+      <button id="pc-btn-azure" class="pc-provider-btn"        onclick="pcSetProvider('azure')">
+        <span style="color:#0078d4">&#9632;</span> Azure
+      </button>
+      <button id="pc-btn-aws"   class="pc-provider-btn"        onclick="pcSetProvider('aws')">
+        <span style="color:#ff9900">&#9632;</span> AWS
+      </button>
+      <button id="pc-btn-gcp"   class="pc-provider-btn"        onclick="pcSetProvider('gcp')">
+        <span style="color:#4285f4">&#9632;</span> GCP
+      </button>
+    </div>
+    <!-- Date range -->
+    <div style="display:flex;gap:6px;align-items:center;margin-left:auto">
+      <input type="date" id="pc-start" style="background:#1a1d27;border:1px solid #334155;color:#e2e8f0;padding:3px 8px;border-radius:4px;font-size:0.75rem">
+      <span style="color:#6b7280;font-size:0.75rem">→</span>
+      <input type="date" id="pc-end"   style="background:#1a1d27;border:1px solid #334155;color:#e2e8f0;padding:3px 8px;border-radius:4px;font-size:0.75rem">
+      <button class="btn btn-ghost" style="font-size:0.72rem;padding:3px 12px" onclick="loadPlatformCost(true)">↻ Refresh</button>
+    </div>
+  </div>
+
+  <!-- KPI row -->
+  <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr);margin-top:12px">
+    <div class="kpi-card cost">
+      <div class="kpi-label">Total Spend</div>
+      <div class="kpi-value" id="pc-kpi-total">—</div>
+      <div class="kpi-sub" id="pc-kpi-period">Selected period</div>
+    </div>
+    <div class="kpi-card" style="border-color:#60a5fa40">
+      <div class="kpi-label">MoM Change</div>
+      <div class="kpi-value" style="color:#60a5fa" id="pc-kpi-mom">—</div>
+      <div class="kpi-sub">vs previous period</div>
+    </div>
+    <div class="kpi-card" style="border-color:#34d39940">
+      <div class="kpi-label">Accounts</div>
+      <div class="kpi-value" style="color:#34d399" id="pc-kpi-accounts">—</div>
+      <div class="kpi-sub">Subscriptions / projects</div>
+    </div>
+    <div class="kpi-card" style="border-color:#fbbf2440">
+      <div class="kpi-label">Services</div>
+      <div class="kpi-value" style="color:#fbbf24" id="pc-kpi-services">—</div>
+      <div class="kpi-sub">Distinct billed services</div>
+    </div>
+    <div class="kpi-card" style="border-color:#a78bfa40">
+      <div class="kpi-label">Regions</div>
+      <div class="kpi-value" style="color:#a78bfa" id="pc-kpi-regions">—</div>
+      <div class="kpi-sub">Distinct regions</div>
+    </div>
+  </div>
+
+  <!-- Charts row -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
+    <!-- Daily trend -->
+    <div class="table-card">
+      <div class="ml-section-title">Daily Cost Trend <span class="ml-section-sub">by cloud provider</span></div>
+      <div style="height:240px;position:relative"><canvas id="pc-chart-daily"></canvas></div>
+    </div>
+    <!-- Cost by category -->
+    <div class="table-card">
+      <div class="ml-section-title">Cost by Category <span class="ml-section-sub">Compute / Storage / Network…</span></div>
+      <div style="height:240px;position:relative"><canvas id="pc-chart-category"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Top services table -->
+  <div class="table-card" style="margin-top:16px">
+    <div class="ml-section-title" style="cursor:pointer;user-select:none;display:flex;align-items:center" onclick="toggleSection('pc-services-wrap',this)">
+      <span class="collapse-icon open">▶</span> Top Services
+      <span class="ml-section-sub">by spend</span>
+      <input type="text" id="pc-svc-search" placeholder="Filter service…" onclick="event.stopPropagation()" oninput="pcFilterServices()" style="margin-left:auto;padding:3px 10px;font-size:0.72rem;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#e2e8f0;width:220px">
+    </div>
+    <div id="pc-services-wrap" style="max-height:400px;overflow-y:auto">
+      <div class="loading"><div class="spinner"></div>Loading…</div>
+    </div>
+  </div>
+
+  <!-- By account table -->
+  <div class="table-card" style="margin-top:16px">
+    <div class="ml-section-title" style="cursor:pointer;user-select:none" onclick="toggleSection('pc-accounts-wrap',this)">
+      <span class="collapse-icon">▶</span> By Account
+      <span class="ml-section-sub">subscription / account / project</span>
+    </div>
+    <div id="pc-accounts-wrap" style="display:none;max-height:400px;overflow-y:auto"></div>
+  </div>
+</main>
+</div>
 
 <script>
 // ── Product color map ─────────────────────────────────────────────────────────
@@ -2610,7 +2713,8 @@ function _smartPrefetch() {
     { tab: 'ucgraph',     fn: loadUCGraph         },
     { tab: 'jobsla',      fn: loadJobSLA          },
     { tab: 'datastorage', fn: loadStorageInsights },
-    { tab: 'datalineage', fn: loadLineageInsights },
+    { tab: 'datalineage',  fn: loadLineageInsights },
+    { tab: 'platformcost', fn: loadPlatformCost   },
   ].filter(t => _canLoad(t.tab));
 
   secondary.forEach((t, idx) => {
@@ -2714,7 +2818,7 @@ function switchTab(tab) {
   _currentTab = tab;
 
   // Use classList for more efficient batch DOM updates
-  const tabs = ['executive','cost','ml','adopt','compute','queries','aiusage','ucgraph','jobsla','datastorage','datalineage','admin'];
+  const tabs = ['executive','cost','ml','adopt','compute','queries','aiusage','ucgraph','jobsla','datastorage','datalineage','platformcost','admin'];
   const tabElements = {
     'executive': document.getElementById('tab-executive'),
     'cost': document.getElementById('tab-cost'),
@@ -2727,6 +2831,7 @@ function switchTab(tab) {
     'jobsla': document.getElementById('tab-jobsla'),
     'datastorage': document.getElementById('tab-datastorage'),
     'datalineage': document.getElementById('tab-datalineage'),
+    'platformcost': document.getElementById('tab-platformcost'),
     'admin': document.getElementById('tab-admin'),
   };
 
@@ -2759,6 +2864,7 @@ function switchTab(tab) {
   if (tab === 'jobsla')      _lazyLoad('jobsla',      loadJobSLA);
   if (tab === 'datastorage')   _lazyLoad('datastorage',   loadStorageInsights);
   if (tab === 'datalineage')   _lazyLoad('datalineage',   loadLineageInsights);
+  if (tab === 'platformcost')  _lazyLoad('platformcost',  loadPlatformCost);
 
   // Allow next tab switch after a short delay to prevent spam
   setTimeout(() => { _tabSwitchPending = false; }, 100);
@@ -7511,7 +7617,8 @@ const _ALL_TABS = [
   { id: 'ucgraph',     label: 'UC Graph' },
   { id: 'jobsla',      label: 'Job SLA' },
   { id: 'datastorage', label: 'Storage' },
-  { id: 'datalineage', label: 'Lineage & ML' },
+  { id: 'datalineage',  label: 'Lineage & ML' },
+  { id: 'platformcost', label: 'Platform Cost' },
 ];
 
 // ── Admin: load & render user list ───────────────────────────────────────────
@@ -7705,6 +7812,252 @@ function _adminMsg(text, type) {
   setTimeout(() => { el.style.display = 'none'; }, 4000);
 }
 </script>
+
+<script>
+// ── Platform Cost ─────────────────────────────────────────────────────────────
+const _PC_COLORS = {
+  azure: '#0078d4',
+  aws:   '#ff9900',
+  gcp:   '#4285f4',
+};
+
+const _PC_CAT_COLORS = [
+  '#60a5fa','#34d399','#fbbf24','#a78bfa','#f87171',
+  '#38bdf8','#fb923c','#4ade80','#e879f9','#facc15',
+];
+
+let _pcProvider   = null;   // null = all
+let _pcSummary    = null;
+let _pcServices   = [];
+let _pcDailyChart = null;
+let _pcCatChart   = null;
+
+function pcSetProvider(p) {
+  _pcProvider = p;
+  document.querySelectorAll('.pc-provider-btn').forEach(b => b.classList.remove('active'));
+  const active = p ? document.getElementById('pc-btn-' + p) : document.getElementById('pc-btn-all');
+  if (active) active.classList.add('active');
+  loadPlatformCost(true);
+}
+
+async function loadPlatformCost(force) {
+  if (!force && document.getElementById('pc-kpi-total').textContent !== '—') return;
+
+  // Default dates: last 30 days
+  const today = new Date();
+  const d30 = new Date(today); d30.setDate(today.getDate() - 30);
+  const fmt = d => d.toISOString().slice(0, 10);
+
+  let startEl = document.getElementById('pc-start');
+  let endEl   = document.getElementById('pc-end');
+  if (!startEl.value) startEl.value = fmt(d30);
+  if (!endEl.value)   endEl.value   = fmt(today);
+  const sd = startEl.value, ed = endEl.value;
+
+  document.getElementById('pc-gen-at').textContent = 'Loading…';
+
+  const provQ   = _pcProvider ? `&provider=${encodeURIComponent(_pcProvider)}` : '';
+  const dateQ   = `start_date=${encodeURIComponent(sd)}&end_date=${encodeURIComponent(ed)}`;
+  const baseQ   = `${dateQ}${provQ}`;
+
+  try {
+    const [summary, daily, byService, byCategory, byAccount] = await Promise.all([
+      apiFetch(`/api/v1/cloud-cost/summary?${baseQ}`),
+      apiFetch(`/api/v1/cloud-cost/daily-trend?${baseQ}`),
+      apiFetch(`/api/v1/cloud-cost/by-service?${baseQ}&top_n=20`),
+      apiFetch(`/api/v1/cloud-cost/by-category?${baseQ}`),
+      apiFetch(`/api/v1/cloud-cost/by-account?${baseQ}`),
+    ]);
+
+    _pcSummary  = summary;
+    _pcServices = byService;
+
+    // KPIs
+    const fmt$ = v => '$' + (v || 0).toLocaleString(undefined, {maximumFractionDigits: 0});
+    document.getElementById('pc-kpi-total').textContent    = fmt$(summary.total_cost_usd);
+    document.getElementById('pc-kpi-period').textContent   = `${sd} → ${ed}`;
+    const mom = summary.mom_pct || 0;
+    const momEl = document.getElementById('pc-kpi-mom');
+    momEl.textContent = (mom >= 0 ? '+' : '') + mom.toFixed(1) + '%';
+    momEl.style.color = mom > 5 ? '#f87171' : mom < -5 ? '#34d399' : '#60a5fa';
+    document.getElementById('pc-kpi-accounts').textContent  = summary.account_count ?? '—';
+    document.getElementById('pc-kpi-services').textContent  = summary.service_count  ?? '—';
+    document.getElementById('pc-kpi-regions').textContent   = summary.region_count   ?? '—';
+
+    // Daily trend chart
+    _pcRenderDailyChart(daily);
+
+    // Category donut chart
+    _pcRenderCategoryChart(byCategory);
+
+    // Services table
+    _pcRenderServices(byService);
+
+    // Accounts table
+    _pcRenderAccounts(byAccount);
+
+    document.getElementById('pc-gen-at').textContent =
+      'Updated ' + new Date().toLocaleTimeString();
+
+  } catch(e) {
+    document.getElementById('pc-gen-at').textContent = 'Error loading data';
+    console.error('Platform Cost error', e);
+  }
+}
+
+function _pcRenderDailyChart(daily) {
+  const ctx = document.getElementById('pc-chart-daily');
+  if (!ctx) return;
+  if (_pcDailyChart) { _pcDailyChart.destroy(); _pcDailyChart = null; }
+
+  // Group by provider → date → cost
+  const providerMap = {};
+  const dateSet = new Set();
+  daily.forEach(r => {
+    dateSet.add(r.date);
+    if (!providerMap[r.cloud_provider]) providerMap[r.cloud_provider] = {};
+    providerMap[r.cloud_provider][r.date] = (providerMap[r.cloud_provider][r.date] || 0) + (r.cost_usd || 0);
+  });
+  const labels = Array.from(dateSet).sort();
+
+  const datasets = Object.entries(providerMap).map(([p, dateMap]) => ({
+    label: p.toUpperCase(),
+    data: labels.map(d => dateMap[d] || 0),
+    borderColor: _PC_COLORS[p] || '#9ca3af',
+    backgroundColor: (_PC_COLORS[p] || '#9ca3af') + '22',
+    fill: true,
+    tension: 0.3,
+    pointRadius: 2,
+  }));
+
+  _pcDailyChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#9ca3af', boxWidth: 12, font: { size: 11 } } } },
+      scales: {
+        x: { ticks: { color: '#6b7280', font: { size: 10 }, maxTicksLimit: 10 }, grid: { color: '#1e2130' } },
+        y: { ticks: { color: '#6b7280', font: { size: 10 }, callback: v => '$' + (v >= 1000 ? (v/1000).toFixed(1)+'k' : v) }, grid: { color: '#1e2130' } },
+      },
+    },
+  });
+}
+
+function _pcRenderCategoryChart(byCat) {
+  const ctx = document.getElementById('pc-chart-category');
+  if (!ctx) return;
+  if (_pcCatChart) { _pcCatChart.destroy(); _pcCatChart = null; }
+
+  // Aggregate across providers
+  const catMap = {};
+  byCat.forEach(r => {
+    const cat = r.service_category || 'Other';
+    catMap[cat] = (catMap[cat] || 0) + (r.cost_usd || 0);
+  });
+  const sorted = Object.entries(catMap).sort((a, b) => b[1] - a[1]);
+  const labels = sorted.map(([c]) => c);
+  const data   = sorted.map(([, v]) => v);
+
+  _pcCatChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{ data, backgroundColor: _PC_CAT_COLORS.slice(0, labels.length), borderWidth: 0 }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { color: '#9ca3af', boxWidth: 12, font: { size: 11 } } },
+        tooltip: { callbacks: { label: ctx => ` $${(ctx.parsed || 0).toLocaleString(undefined, {maximumFractionDigits:0})}` } },
+      },
+    },
+  });
+}
+
+function _pcRenderServices(rows) {
+  const wrap = document.getElementById('pc-services-wrap');
+  if (!wrap) return;
+  if (!rows || !rows.length) {
+    wrap.innerHTML = '<div style="padding:16px;color:#6b7280;text-align:center">No data</div>'; return;
+  }
+  const maxCost = rows[0].cost_usd || 1;
+  const provColor = r => _PC_COLORS[r.cloud_provider] || '#9ca3af';
+  wrap.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:0.78rem">
+      <thead><tr style="color:#6b7280;border-bottom:1px solid #1e2130">
+        <th style="text-align:left;padding:6px 12px">Service</th>
+        <th style="text-align:left;padding:6px 8px">Category</th>
+        <th style="text-align:left;padding:6px 8px">Provider</th>
+        <th style="text-align:right;padding:6px 12px">Cost</th>
+        <th style="padding:6px 12px;width:120px">Share</th>
+      </tr></thead>
+      <tbody>
+        ${rows.map(r => `
+          <tr style="border-bottom:1px solid #0f172a;color:#e2e8f0">
+            <td style="padding:5px 12px">${escHtml(r.service_name || '—')}</td>
+            <td style="padding:5px 8px;color:#94a3b8">${escHtml(r.service_category || '—')}</td>
+            <td style="padding:5px 8px">
+              <span style="color:${provColor(r)};font-weight:600;font-size:0.72rem">${(r.cloud_provider || '').toUpperCase()}</span>
+            </td>
+            <td style="padding:5px 12px;text-align:right;font-weight:600">
+              $${(r.cost_usd || 0).toLocaleString(undefined, {maximumFractionDigits:0})}
+            </td>
+            <td style="padding:5px 12px">
+              <div style="background:#1e2130;border-radius:3px;height:6px;overflow:hidden">
+                <div style="background:${provColor(r)};height:100%;width:${Math.min(100,(r.cost_usd||0)/maxCost*100).toFixed(1)}%"></div>
+              </div>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function _pcRenderAccounts(rows) {
+  const wrap = document.getElementById('pc-accounts-wrap');
+  if (!wrap) return;
+  if (!rows || !rows.length) {
+    wrap.innerHTML = '<div style="padding:16px;color:#6b7280;text-align:center">No data</div>'; return;
+  }
+  wrap.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:0.78rem">
+      <thead><tr style="color:#6b7280;border-bottom:1px solid #1e2130">
+        <th style="text-align:left;padding:6px 12px">Provider</th>
+        <th style="text-align:left;padding:6px 12px">Account / Subscription</th>
+        <th style="text-align:right;padding:6px 12px">Cost</th>
+        <th style="text-align:right;padding:6px 8px">Services</th>
+        <th style="text-align:right;padding:6px 12px">Regions</th>
+      </tr></thead>
+      <tbody>
+        ${rows.map(r => `
+          <tr style="border-bottom:1px solid #0f172a;color:#e2e8f0">
+            <td style="padding:5px 12px">
+              <span style="color:${_PC_COLORS[r.cloud_provider]||'#9ca3af'};font-weight:600;font-size:0.72rem">${(r.cloud_provider||'').toUpperCase()}</span>
+            </td>
+            <td style="padding:5px 12px">
+              <div style="font-weight:500">${escHtml(r.account_name || r.account_id || '—')}</div>
+              <div style="font-size:0.68rem;color:#6b7280">${escHtml(r.account_id || '')}</div>
+            </td>
+            <td style="padding:5px 12px;text-align:right;font-weight:600">
+              $${(r.cost_usd||0).toLocaleString(undefined,{maximumFractionDigits:0})}
+            </td>
+            <td style="padding:5px 8px;text-align:right;color:#94a3b8">${r.service_count ?? '—'}</td>
+            <td style="padding:5px 12px;text-align:right;color:#94a3b8">${r.region_count ?? '—'}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function pcFilterServices() {
+  const q = (document.getElementById('pc-svc-search')?.value || '').toLowerCase();
+  const filtered = q ? _pcServices.filter(r =>
+    (r.service_name || '').toLowerCase().includes(q) ||
+    (r.service_category || '').toLowerCase().includes(q)
+  ) : _pcServices;
+  _pcRenderServices(filtered);
+}
+</script>
+
 <!-- ── Admin tab ── -->
 <div id="tab-admin" style="display:none">
 <main style="max-width:1280px;margin:0 auto;padding:24px 24px 48px">
