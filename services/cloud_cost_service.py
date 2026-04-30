@@ -225,6 +225,38 @@ class CloudCostService:
         """
         return self._safe(sql)
 
+    def get_by_sku(
+        self,
+        start_date: str,
+        end_date: str,
+        provider: Optional[str] = None,
+        account_ids: Optional[list[str]] = None,
+        top_n: int = 30,
+    ) -> list[dict]:
+        pc = self._provider_clause(provider)
+        ac = self._account_clause(account_ids or [])
+        sql = f"""
+            SELECT
+                cloud_provider,
+                service_name,
+                service_category,
+                sku_description,
+                usage_unit,
+                pricing_model,
+                ROUND(SUM(usage_quantity), 2) AS total_quantity,
+                ROUND(AVG(unit_price), 8)     AS avg_unit_price,
+                ROUND(SUM(cost_usd), 2)       AS cost_usd,
+                COUNT(DISTINCT account_id)    AS account_count
+            FROM {self._table()}
+            WHERE usage_date BETWEEN '{start_date}' AND '{end_date}'
+            {pc} {ac}
+            GROUP BY cloud_provider, service_name, service_category,
+                     sku_description, usage_unit, pricing_model
+            ORDER BY cost_usd DESC
+            LIMIT {int(top_n)}
+        """
+        return self._safe(sql)
+
     def get_by_category(
         self,
         start_date: str,

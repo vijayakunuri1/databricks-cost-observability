@@ -130,6 +130,20 @@ async def get_by_region(
     return await _handle(lambda: svc.get_by_region(sd, ed, provider, _parse_accounts(account)))
 
 
+@router.get("/by-sku", summary="Cost broken down by SKU / meter (top N) — includes usage quantity, unit price, pricing model")
+async def get_by_sku(
+    start_date: Optional[str] = Query(default=None, min_length=10, max_length=10, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    end_date: Optional[str] = Query(default=None, min_length=10, max_length=10, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    provider: Optional[str] = Query(default=None, max_length=10),
+    account: Optional[str] = Query(default=None, max_length=1000),
+    top_n: int = Query(default=30, ge=1, le=200),
+    svc: CloudCostService = Depends(_svc),
+):
+    sd = start_date or _default_start()
+    ed = end_date or _default_end()
+    return await _handle(lambda: svc.get_by_sku(sd, ed, provider, _parse_accounts(account), top_n))
+
+
 @router.get("/by-category", summary="Cost broken down by service category (Compute/Storage/Network…)")
 async def get_by_category(
     start_date: Optional[str] = Query(default=None, min_length=10, max_length=10, pattern=r"^\d{4}-\d{2}-\d{2}$"),
