@@ -40,6 +40,23 @@ class Settings(BaseSettings):
     # Set to "*" to allow querying across all workspaces (admin mode).
     allowed_workspace_ids: str = Field(default="")
 
+    # ── Cloud Platform Cost credentials ───────────────────────────────────────
+    # Azure Cost Management (Service Principal with Cost Management Reader role)
+    azure_tenant_id: str = Field(default="")
+    azure_client_id: str = Field(default="")
+    azure_client_secret: str = Field(default="")
+    azure_subscription_ids: str = Field(default="")   # comma-separated GUIDs
+
+    # AWS Cost Explorer (IAM user/role with ce:GetCostAndUsage permission)
+    aws_access_key_id: str = Field(default="")
+    aws_secret_access_key: str = Field(default="")
+    aws_account_ids: str = Field(default="")           # comma-separated account IDs
+
+    # GCP Cloud Billing (Service Account JSON with billing.viewer role)
+    gcp_service_account_json: str = Field(default="")  # full JSON as a single-line string
+    gcp_project_ids: str = Field(default="")           # comma-separated project IDs
+    gcp_billing_account_id: str = Field(default="")    # e.g. "012345-ABCDEF-012345"
+
     # Per-user tab and workspace restrictions — JSON string mapping email → config.
     # Example: {"alice@example.com": {"tabs": ["executive", "cost"], "workspaces": ["ws-123"]}}
     # Leave empty to give all users access to all tabs and workspaces.
