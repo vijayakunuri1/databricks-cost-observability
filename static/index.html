@@ -1687,6 +1687,7 @@
       <label class="ucg-cb"><input type="checkbox" checked data-ntype="service_principal" onchange="_ucgFilterChanged()"><span style="color:#fb923c">●</span> Service Principals</label>
       <label class="ucg-cb"><input type="checkbox" checked data-ntype="catalog" onchange="_ucgFilterChanged()"><span style="color:#34d399">●</span> Catalogs</label>
       <label class="ucg-cb"><input type="checkbox" checked data-ntype="schema" onchange="_ucgFilterChanged()"><span style="color:#fbbf24">●</span> Schemas</label>
+      <label class="ucg-cb"><input type="checkbox" checked data-ntype="table" onchange="_ucgFilterChanged()"><span style="color:#38bdf8">●</span> Tables</label>
       <label class="ucg-cb"><input type="checkbox" checked data-ntype="workspace" onchange="_ucgFilterChanged()"><span style="color:#f472b6">●</span> Workspaces</label>
 
       <!-- Privileges (default all deselected) -->
@@ -6005,9 +6006,9 @@ let _ucgHighlightNode = null;
 
 const _UCG_COLORS = {
   user: '#60a5fa', group: '#a78bfa', service_principal: '#fb923c',
-  catalog: '#34d399', schema: '#fbbf24', workspace: '#f472b6',
+  catalog: '#34d399', schema: '#fbbf24', table: '#38bdf8', workspace: '#f472b6',
 };
-const _UCG_RADIUS = { user: 6, group: 9, service_principal: 7, catalog: 12, schema: 8, workspace: 10 };
+const _UCG_RADIUS = { user: 6, group: 9, service_principal: 7, catalog: 12, schema: 8, table: 8, workspace: 10 };
 const _UCG_PRIV_COLORS = {
   'ALL PRIVILEGES': '#f87171', 'SELECT': '#60a5fa', 'MODIFY': '#fb923c',
   'USE CATALOG': '#34d399', 'USE SCHEMA': '#fbbf24', 'CREATE': '#a78bfa',
@@ -6098,6 +6099,27 @@ function _ucgBuildGraph() {
         privSet.add('CONTAINS');
       }
       addL(p.name, schId, g.privilege);
+    });
+
+    // Table grants
+    (p.table_grants || []).forEach(g => {
+      const catId = `cat:${g.catalog}`;
+      const schId = `sch:${g.catalog}.${g.schema}`;
+      const tblId = `tbl:${g.catalog}.${g.schema}.${g.table}`;
+      addN(catId, g.catalog, 'catalog');
+      addN(schId, g.schema, 'schema');
+      addN(tblId, g.table, 'table');
+      // Link catalog → schema (structural)
+      if (!links.some(l => (l.source === catId || l.source.id === catId) && (l.target === schId || l.target.id === schId) && l.privilege === 'CONTAINS')) {
+        addL(catId, schId, 'CONTAINS');
+        privSet.add('CONTAINS');
+      }
+      // Link schema → table (structural)
+      if (!links.some(l => (l.source === schId || l.source.id === schId) && (l.target === tblId || l.target.id === tblId) && l.privilege === 'CONTAINS')) {
+        addL(schId, tblId, 'CONTAINS');
+        privSet.add('CONTAINS');
+      }
+      addL(p.name, tblId, g.privilege);
     });
 
     // Workspace assignments
