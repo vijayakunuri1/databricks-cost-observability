@@ -25,7 +25,7 @@ Databricks system tables contain everything needed to understand cost, usage, an
 > **Note on the numbers below and in the screenshots.** Every figure shown
 > (token counts, job/run totals, success rates, node/edge counts, dollar
 > amounts) comes from the bundled **MOCK_MODE** demo dataset seeded by
-> `scripts/setup_enterprise_mock_data.py` — a synthetic 90-day banking-domain
+> `scripts/setup_mock_tables.py` — a synthetic 90-day banking-domain
 > workspace. They illustrate what the app surfaces, not results from a
 > production deployment. On a real workspace with `MOCK_MODE=false` the same
 > queries run against your own `system.*` tables.
@@ -236,7 +236,7 @@ Per-user tab restrictions, workspace locks, and tag filters can be managed from 
 - **Input validation** — all user input strictly validated before SQL construction (`core/validators.py`)
 - **Admin guard** — `require_admin()` on all admin endpoints; 403 on non-admin access with audit log entry
 - **No credentials in code** — `DATABRICKS_TOKEN`, `ADMIN_USERS`, and SMTP creds flow via GitHub Secrets → bundle variables → app env vars
-- **`app.yaml` inline values** — `DATABRICKS_WAREHOUSE_ID` and `UC_CATALOG_NAME` are committed inline for dev convenience only (a warehouse ID and a catalog name, not secrets). For shared or production deployments, move them to Databricks App secrets and reference them with `valueFrom:` — see the commented block in `app.yaml`.
+- **`app.yaml` inline values** — `DATABRICKS_WAREHOUSE_ID` and `UC_CATALOG_NAME` are committed inline for dev convenience only (a warehouse ID and a catalog name, not secrets). For shared or production deployments, move them to Databricks App secrets and reference them with `valueFrom:` — see the secret-management comments in `app.yaml`.
 
 ---
 
